@@ -2,46 +2,47 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
-import { sequelize } from "./src/models/index.js";
-
-// Routes Imports
 import authRoutes from "./src/routes/auth.js";
-import characterRoutes from "./src/routes/characterRoutes.js";
-import weaponRoutes from "./src/routes/weaponRoutes.js";
-import postRoutes from "./src/routes/postRoutes.js";
-import commentRoutes from "./src/routes/commentRoutes.js";
+import postRoutes from "./src/routes/posts.js";
+import commentRoutes from "./src/routes/comments.js";
+import characterRoutes from "./src/routes/characters.js";
+import weaponRoutes from "./src/routes/weapons.js";
 
-const allowedOrigins = [
-  'http://localhost:3000', // Jika frontend React berjalan di port 3000
-  'http://localhost:4000', // Port backend lokal
-  'http://localhost:5173', // Port backend lokal
-  'https://nama-proyek-frontend-anda.vercel.app', // GANTI INI dengan domain Vercel frontend Anda
-];
-
-const corsOptions = {
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    }
-};
-// 🔥 AKHIR PERUBAHAN CORS
 
 dotenv.config();
+
+
 const app = express();
 
-app.use(cors(corsOptions)); // 🔥 Menggunakan konfigurasi yang lebih aman
-app.use(bodyParser.json());
 
+const allowed = (process.env.FRONTEND_URLS || "").split(",").map(s => s.trim()).filter(Boolean);
+
+
+app.use(cors({
+origin: function (origin, callback) {
+if (!origin) return callback(null, true);
+if (allowed.length === 0) return callback(null, true);
+if (allowed.includes(origin) || allowed.some(a => origin.includes(a.replace("*", "")))) return callback(null, true);
+callback(new Error("Not allowed by CORS"));
+},
+credentials: true
+}));
+
+
+app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-// Register Routes
+// Routes prefix /api are handled by Vercel route mapping; in app we register relative paths
 app.use("/api/auth", authRoutes);
-app.use("/api/characters", characterRoutes);
-app.use("/api/weapons", weaponRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/characters", characterRoutes);
+app.use("/api/weapons", weaponRoutes);
+
+
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
+
+
+export default app;

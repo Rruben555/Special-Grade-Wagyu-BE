@@ -56,72 +56,63 @@
 import { Sequelize, DataTypes } from "sequelize";
 import dotenv from "dotenv";
 
+dotenv.config();
+
+// ---------- SINGLETON (WAJIB DI VERCEL) ----------
+let sequelize;
+if (!global.__sequelize) {
+  global.__sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: "postgres",
+    logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false, // Neon requires this in most setups
+      },
+    },
+  });
+}
+sequelize = global.__sequelize;
+// -------------------------------------------------
+
+// Import models
 import userModel from "./user.js";
 import characterModel from "./character.js";
 import weaponModel from "./weapon.js";
 import postModel from "./post.js";
 import commentModel from "./comment.js";
 
-dotenv.config();
+// Initialize models
+const User = userModel(sequelize, DataTypes);
+const Character = characterModel(sequelize, DataTypes);
+const Weapon = weaponModel(sequelize, DataTypes);
+const Post = postModel(sequelize, DataTypes);
+const Comment = commentModel(sequelize, DataTypes);
 
-const globalCache = globalThis.__SEQUELIZE__ || {};
+// --------------------------------------
+// Define relationships
+// --------------------------------------
 
-function createSequelize() {
-  if (process.env.DATABASE_URL) {
-    return new Sequelize(process.env.DATABASE_URL, {
-      dialect: "postgres",
-      dialectOptions: {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false
-        }
-      },
-      logging: false
-    });
-  }
-
-  // fallback jika pakai PG_* manual
-  return new Sequelize(
-    process.env.PG_DATABASE,
-    process.env.PG_USER,
-    process.env.PG_PASSWORD,
-    {
-      host: process.env.PG_HOST,
-      port: process.env.PG_PORT,
-      dialect: "postgres",
-      logging: false,
-      dialectOptions: {
-        ssl: { require: true, rejectUnauthorized: false }
-      }
-    }
-  );
-}
-
-if (!globalCache.instance) {
-  globalCache.instance = createSequelize();
-  globalThis.__SEQUELIZE__ = globalCache;
-}
-
-export const sequelize = globalCache.instance;
-
-// --- MODELS ---
-export const User = userModel(sequelize, DataTypes);
-export const Character = characterModel(sequelize, DataTypes);
-export const Weapon = weaponModel(sequelize, DataTypes);
-export const Post = postModel(sequelize, DataTypes);
-export const Comment = commentModel(sequelize, DataTypes);
-
-// --- RELATIONS ---
+// User ↔ Post
 User.hasMany(Post, { foreignKey: "user_id" });
 Post.belongsTo(User, { foreignKey: "user_id" });
 
+// User ↔ Comment
 User.hasMany(Comment, { foreignKey: "user_id" });
 Comment.belongsTo(User, { foreignKey: "user_id" });
 
-Post.hasMany(Comment, { foreignKey: "post_id", onDelete: "CASCADE" });
+// Post ↔ Comment
+Post.hasMany(Comment, {
+  foreignKey: "post_id",
+  onDelete: "CASCADE",
+});
 Comment.belongsTo(Post, { foreignKey: "post_id" });
 
-export default {
+// Character & Weapon (optional, if related)
+Character.hasMany(Weapon, { foreignKey: "character_id" });
+Weapon.belongsTo(Character, { foreignKey: "character_id" });
+
+export {
   sequelize,
   User,
   Character,
