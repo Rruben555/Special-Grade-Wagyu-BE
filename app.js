@@ -45,19 +45,3 @@ app.use("/api/characters", characterRoutes);
 app.use("/api/weapons", weaponRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
-
-const PORT = process.env.PORT || 4000;
-
-app.listen(PORT, async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("✅ Connected to PostgreSQL");
-  
-    // Gunakan alter:true untuk menyesuaikan kolom jika ada yang kurang
-    await sequelize.sync({ alter: true });
-    console.log("📌 Database synced");
-  } catch (err) {
-    console.error("❌ Database connection error:", err);
-  }
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});

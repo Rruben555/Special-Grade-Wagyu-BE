@@ -4,10 +4,10 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "server.js",
+    "start": "app.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js",
-    "seed": "node ./seeders/seed.js"
+    "dev": "nodemon app.js",
+    "vercel-build": "echo \"No build required\""
   },
   "keywords": [],
   "author": "",
